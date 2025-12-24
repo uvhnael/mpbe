@@ -25,8 +25,11 @@ public class MealPlan {
     
     @ManyToOne
     @JoinColumn(name = "user_id")
-    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"userProfile", "hibernateLazyInitializer", "handler"})
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"password","fullName","userProfile", "createdAt", "updatedAt", "hibernateLazyInitializer", "handler"})
     private User user;
+    
+    @Column(nullable = false)
+    private String name;
     
     @Column(name = "start_date")
     private LocalDate startDate;

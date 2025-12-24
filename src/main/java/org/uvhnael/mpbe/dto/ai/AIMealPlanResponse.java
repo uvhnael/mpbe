@@ -21,11 +21,28 @@ public class AIMealPlanResponse {
     public static class AIMeal {
         private String type; // breakfast, lunch, dinner, snack
         private String name;
-        private List<String> ingredients; // Changed to accept simple string array
-        private String instructions;
-        private AINutrition nutrition;
+        private String description;
+        private String cuisineType;
         private Integer prepTime;
         private Integer cookTime;
+        private Integer servings;
+        private String difficulty;
+        private String imageUrl;
+        private List<AIIngredient> ingredients; // Support full ingredient objects
+        private String instructions;
+        private AINutrition nutrition;
+    }
+    
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class AIIngredient {
+        private String name;
+        private java.math.BigDecimal quantity;
+        private String unit;
+        private java.math.BigDecimal calories;
+        private java.math.BigDecimal protein;
+        private java.math.BigDecimal carbs;
+        private java.math.BigDecimal fat;
     }
     
     @Data

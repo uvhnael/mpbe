@@ -50,6 +50,12 @@ public class MealPlanController {
             mealPlan.setEndDate(java.time.LocalDate.now().plusDays(request.getDays()));
             mealPlan.setStatus("active");
             
+            // Generate default name based on dates and days
+            String defaultName = String.format("%d-Day Meal Plan (%s)", 
+                request.getDays(), 
+                java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy")));
+            mealPlan.setName(defaultName);
+            
             // Parse AI response and save to database
             mealPlan = aiParserService.parseAndSaveMealPlan(aiResponse, mealPlan);
             mealPlan = mealPlanService.createMealPlan(mealPlan);
@@ -62,7 +68,45 @@ public class MealPlanController {
     }
     
     @GetMapping
-    public ResponseEntity<?> getUserMealPlans(@RequestParam Long userId) {
+    @Operation(summary = "Get user meal plans with pagination", description = "Retrieve meal plans for a user with pagination support")
+    public ResponseEntity<?> getUserMealPlans(
+            @RequestParam Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDirection) {
+        try {
+            org.springframework.data.domain.Sort.Direction direction = 
+                sortDirection.equalsIgnoreCase("asc") ? 
+                org.springframework.data.domain.Sort.Direction.ASC : 
+                org.springframework.data.domain.Sort.Direction.DESC;
+            
+            org.springframework.data.domain.Pageable pageable = 
+                org.springframework.data.domain.PageRequest.of(page, size, 
+                    org.springframework.data.domain.Sort.by(direction, sortBy));
+            
+            org.springframework.data.domain.Page<MealPlan> mealPlansPage = 
+                mealPlanService.getUserMealPlans(userId, pageable);
+            
+            java.util.Map<String, Object> response = new java.util.HashMap<>();
+            response.put("content", mealPlansPage.getContent());
+            response.put("currentPage", mealPlansPage.getNumber());
+            response.put("totalItems", mealPlansPage.getTotalElements());
+            response.put("totalPages", mealPlansPage.getTotalPages());
+            response.put("pageSize", mealPlansPage.getSize());
+            response.put("hasNext", mealPlansPage.hasNext());
+            response.put("hasPrevious", mealPlansPage.hasPrevious());
+            
+            return ResponseEntity.ok(new ApiResponse(true, "Success", response));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                .body(new ApiResponse(false, e.getMessage()));
+        }
+    }
+    
+    @GetMapping("/all")
+    @Operation(summary = "Get all user meal plans", description = "Retrieve all meal plans for a user without pagination")
+    public ResponseEntity<?> getAllUserMealPlans(@RequestParam Long userId) {
         try {
             List<MealPlan> mealPlans = mealPlanService.getUserMealPlans(userId);
             return ResponseEntity.ok(new ApiResponse(true, "Success", mealPlans));
@@ -90,6 +134,26 @@ public class MealPlanController {
         try {
             MealPlan updatedPlan = mealPlanService.updateMealPlan(id, mealPlan);
             return ResponseEntity.ok(new ApiResponse(true, "Meal plan updated", updatedPlan));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                .body(new ApiResponse(false, e.getMessage()));
+        }
+    }
+    
+    @PatchMapping("/{id}/name")
+    @Operation(summary = "Update meal plan name", description = "Update the name of a meal plan")
+    public ResponseEntity<?> updateMealPlanName(
+            @PathVariable Long id, 
+            @RequestBody java.util.Map<String, String> request) {
+        try {
+            String newName = request.get("name");
+            if (newName == null || newName.trim().isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body(new ApiResponse(false, "Name cannot be empty"));
+            }
+            
+            MealPlan updatedPlan = mealPlanService.updateMealPlanName(id, newName);
+            return ResponseEntity.ok(new ApiResponse(true, "Meal plan name updated", updatedPlan));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
                 .body(new ApiResponse(false, e.getMessage()));

@@ -9,7 +9,8 @@ import java.math.BigDecimal;
 
 @Entity
 @Table(name = "ingredients")
-@Data
+@lombok.Getter
+@lombok.Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Ingredient {
@@ -20,6 +21,7 @@ public class Ingredient {
     
     @ManyToOne
     @JoinColumn(name = "recipe_id")
+    @com.fasterxml.jackson.annotation.JsonBackReference
     private Recipe recipe;
     
     @Column(nullable = false)

@@ -20,15 +20,15 @@ import org.uvhnael.mpbe.security.JwtAuthenticationFilter;
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
-
+    
     private final CustomUserDetailsService customUserDetailsService;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-
+    
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-
+    
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
@@ -36,55 +36,48 @@ public class SecurityConfig {
         authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
     }
-
+    
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
         return authConfig.getAuthenticationManager();
     }
-
+    
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.configure(http))
-
-                // ======= FIX SWAGGER UI BỊ CHẶN CSP =======
-                .headers(headers -> headers
-                        .frameOptions(frameOptions -> frameOptions.disable()) // fix H2 + Swagger
-                        .xssProtection(xss -> xss.disable())
-                        .contentSecurityPolicy(csp -> csp.policyDirectives(
-                                "default-src 'self'; " +
-                                        "style-src 'self' 'unsafe-inline'; " +
-                                        "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; " +   // ⭐ FIX QUAN TRỌNG
-                                        "img-src 'self' data: https:; " +
-                                        "font-src 'self' data:;"
-                        ))
-                )
-                // ==========================================
-
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll()
-                        // ======= WHITELIST SWAGGER =======
-                        .requestMatchers(
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/swagger-ui.html",
-                                "/api-docs/**",
-                                "/swagger-resources/**",
-                                "/webjars/**"
-                        ).permitAll()
-                        // ==================================
-                        // ======= WHITELIST HEALTH CHECK =======
-                        .requestMatchers("/health/**").permitAll()
-                        // ======================================
-                        .anyRequest().authenticated()
-                );
-
+            .csrf(csrf -> csrf.disable())
+            .cors(cors -> {}) // CORS configuration from CorsConfig
+            .headers(headers -> headers
+                .frameOptions(frameOptions -> frameOptions.disable())
+                .xssProtection(xss -> xss.disable())
+                .contentSecurityPolicy(csp -> csp.policyDirectives(
+                    "default-src 'self'; " +
+                    "style-src 'self' 'unsafe-inline'; " +
+                    "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; " +
+                    "img-src 'self' data: https:; " +
+                    "font-src 'self' data:;"
+                ))
+            )
+            .sessionManagement(session -> 
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/auth/**").permitAll()
+                .requestMatchers(
+                    "/swagger-ui/**",
+                    "/v3/api-docs/**",
+                    "/swagger-ui.html",
+                    "/api-docs/**",
+                    "/swagger-resources/**",
+                    "/webjars/**"
+                ).permitAll()
+                .requestMatchers("/health/**").permitAll()
+                .anyRequest().authenticated()
+            );
+        
         http.authenticationProvider(authenticationProvider());
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-
+        
         return http.build();
     }
 }

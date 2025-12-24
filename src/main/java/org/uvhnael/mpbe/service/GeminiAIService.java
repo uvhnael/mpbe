@@ -71,15 +71,70 @@ public class GeminiAIService {
                   "meals": [
                     {
                       "type": "breakfast",
-                      "name": "...",
-                      "ingredients": [...],
-                      "instructions": "...",
-                      "nutrition": {...}
+                      "name": "Scrambled Eggs with Toast",
+                      "description": "A classic breakfast with protein and carbs",
+                      "cuisineType": "American",
+                      "prepTime": 5,
+                      "cookTime": 10,
+                      "servings": 1,
+                      "difficulty": "easy",
+                      "imageUrl": "https://example.com/image.jpg",
+                      "ingredients": [
+                        {
+                          "name": "eggs",
+                          "quantity": 2,
+                          "unit": "pieces",
+                          "calories": 140,
+                          "protein": 12,
+                          "carbs": 1,
+                          "fat": 10
+                        },
+                        {
+                          "name": "bread",
+                          "quantity": 2,
+                          "unit": "slices",
+                          "calories": 160,
+                          "protein": 5,
+                          "carbs": 30,
+                          "fat": 2
+                        }
+                      ],
+                      "instructions": "1. Beat eggs in a bowl\n2. Heat pan and add butter\n3. Cook eggs until done\n4. Toast bread\n5. Serve together",
+                      "nutrition": {
+                        "calories": 300,
+                        "protein": 17,
+                        "carbs": 31,
+                        "fat": 12
+                      }
                     }
                   ]
                 }
               ]
             }
+            
+            IMPORTANT Requirements:
+            
+            Each meal MUST include:
+            - type: meal type (breakfast/lunch/dinner/snack)
+            - name: recipe name
+            - description: brief description of the dish
+            - cuisineType: cuisine origin (e.g., Italian, Mexican, Asian, American)
+            - prepTime: preparation time in minutes
+            - cookTime: cooking time in minutes
+            - servings: number of servings (default 1)
+            - difficulty: easy, medium, or hard
+            - imageUrl: use placeholder like "https://via.placeholder.com/400x300?text=[MealName]"
+            - instructions: step-by-step cooking instructions
+            - nutrition: total nutritional values
+            
+            Each ingredient MUST include:
+            - name: ingredient name (string)
+            - quantity: numeric amount (number)
+            - unit: measurement unit like "g", "ml", "pieces", "cups", "tbsp" (string)
+            - calories: calorie content (number)
+            - protein: protein in grams (number)
+            - carbs: carbohydrates in grams (number)
+            - fat: fat in grams (number)
             """,
             days,
             profile.getGoal(),
@@ -90,7 +145,7 @@ public class GeminiAIService {
         );
     }
     
-    private String callGeminiAPI(String prompt) {
+    public String callGeminiAPI(String prompt) {
         try {
             String url = apiUrl + "?key=" + apiKey;
             

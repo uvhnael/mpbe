@@ -31,6 +31,9 @@ public class AIMealPlanParserService {
             // Extract JSON from AI response (handle markdown code blocks)
             String jsonContent = extractJSON(aiResponse);
             
+            // Sanitize JSON - escape unescaped newlines in string values
+            jsonContent = sanitizeJSON(jsonContent);
+            
             AIMealPlanResponse aiPlan = objectMapper.readValue(jsonContent, AIMealPlanResponse.class);
             
             List<MealPlanItem> items = new ArrayList<>();
@@ -57,6 +60,27 @@ public class AIMealPlanParserService {
             // Save all meal plan items
             mealPlanItemRepository.saveAll(items);
             savedMealPlan.setMealPlanItems(items);
+            
+            // Calculate total calories from all meals
+            int totalCalories = 0;
+            for (AIMealPlanResponse.AIDayPlan day : aiPlan.getDays()) {
+                for (AIMealPlanResponse.AIMeal meal : day.getMeals()) {
+                    if (meal.getNutrition() != null && meal.getNutrition().getCalories() != null) {
+                        try {
+                            // Extract numeric value from string like "300" or "~300 kcal"
+                            String caloriesStr = meal.getNutrition().getCalories().replaceAll("[^0-9]", "");
+                            if (!caloriesStr.isEmpty()) {
+                                totalCalories += Integer.parseInt(caloriesStr);
+                            }
+                        } catch (Exception e) {
+                            // Skip if cannot parse
+                        }
+                    }
+                }
+            }
+            
+            savedMealPlan.setTotalCalories(totalCalories);
+            mealPlanRepository.save(savedMealPlan);
             
             return savedMealPlan;
             
@@ -99,36 +123,83 @@ public class AIMealPlanParserService {
         return response;
     }
     
+    /**
+     * Sanitize JSON by escaping unescaped newlines and other control characters in string values
+     */
+    private String sanitizeJSON(String json) {
+        StringBuilder result = new StringBuilder();
+        boolean inString = false;
+        boolean escaped = false;
+        
+        for (int i = 0; i < json.length(); i++) {
+            char c = json.charAt(i);
+            
+            if (escaped) {
+                result.append(c);
+                escaped = false;
+                continue;
+            }
+            
+            if (c == '\\') {
+                result.append(c);
+                escaped = true;
+                continue;
+            }
+            
+            if (c == '"') {
+                result.append(c);
+                inString = !inString;
+                continue;
+            }
+            
+            // If we're inside a string and encounter control characters, escape them
+            if (inString) {
+                if (c == '\n') {
+                    result.append("\\n");
+                } else if (c == '\r') {
+                    result.append("\\r");
+                } else if (c == '\t') {
+                    result.append("\\t");
+                } else {
+                    result.append(c);
+                }
+            } else {
+                result.append(c);
+            }
+        }
+        
+        return result.toString();
+    }
+    
     private Recipe createRecipeFromAIMeal(AIMealPlanResponse.AIMeal meal, User user) {
         Recipe recipe = new Recipe();
         recipe.setName(meal.getName());
-        recipe.setInstructions(meal.getInstructions());
+        recipe.setDescription(meal.getDescription());
+        recipe.setCuisineType(meal.getCuisineType());
         recipe.setMealType(meal.getType());
         recipe.setPrepTime(meal.getPrepTime());
         recipe.setCookTime(meal.getCookTime());
+        recipe.setServings(meal.getServings() != null ? meal.getServings() : 1);
+        recipe.setDifficulty(meal.getDifficulty());
+        recipe.setImageUrl(meal.getImageUrl());
+        recipe.setInstructions(meal.getInstructions());
         recipe.setCreatedBy(user);
-        
-        // Set description from nutrition info
-        if (meal.getNutrition() != null) {
-            recipe.setDescription(String.format("Calories: %s, Protein: %s, Carbs: %s, Fat: %s",
-                meal.getNutrition().getCalories() != null ? meal.getNutrition().getCalories() : "N/A",
-                meal.getNutrition().getProtein() != null ? meal.getNutrition().getProtein() : "N/A",
-                meal.getNutrition().getCarbs() != null ? meal.getNutrition().getCarbs() : "N/A",
-                meal.getNutrition().getFat() != null ? meal.getNutrition().getFat() : "N/A"
-            ));
-        }
         
         recipe = recipeRepository.save(recipe);
         
         // Create ingredients
         if (meal.getIngredients() != null) {
             List<Ingredient> ingredients = new ArrayList<>();
-            for (String ingredientStr : meal.getIngredients()) {
+            for (AIMealPlanResponse.AIIngredient aiIngredient : meal.getIngredients()) {
                 Ingredient ingredient = new Ingredient();
                 ingredient.setRecipe(recipe);
-                ingredient.setName(ingredientStr);
-                ingredient.setQuantity(null); // Parse from string if needed
-                ingredient.setUnit(null);
+                ingredient.setName(aiIngredient.getName());
+                ingredient.setQuantity(aiIngredient.getQuantity());
+                ingredient.setUnit(aiIngredient.getUnit() != null ? aiIngredient.getUnit() : "unit");
+                ingredient.setCalories(aiIngredient.getCalories());
+                ingredient.setProtein(aiIngredient.getProtein());
+                ingredient.setCarbs(aiIngredient.getCarbs());
+                ingredient.setFat(aiIngredient.getFat());
                 
                 ingredients.add(ingredient);
             }

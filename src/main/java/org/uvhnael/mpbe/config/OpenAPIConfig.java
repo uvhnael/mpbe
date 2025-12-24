@@ -15,14 +15,17 @@ import java.util.List;
 
 @Configuration
 public class OpenAPIConfig {
-    
+
     @Value("${server.port:8080}")
     private String serverPort;
 
     @Value("${server.servlet.context-path:/api/v1}")
     private String serverPath;
+
     @Bean
     public OpenAPI mealPlannerOpenAPI() {
+        final String securitySchemeName = "BearerAuth";
+
         return new OpenAPI()
                 .info(new Info()
                         .title("Meal Planner API")
@@ -42,9 +45,9 @@ public class OpenAPIConfig {
                         new Server()
                                 .url("https://api.mealplanner.com")
                                 .description("Production Server")))
-                .addSecurityItem(new SecurityRequirement().addList("Bearer Authentication"))
+                .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
                 .components(new io.swagger.v3.oas.models.Components()
-                        .addSecuritySchemes("Bearer Authentication",
+                        .addSecuritySchemes(securitySchemeName,
                                 new SecurityScheme()
                                         .type(SecurityScheme.Type.HTTP)
                                         .scheme("bearer")

@@ -25,7 +25,7 @@ public class MealPlanItem {
     
     @ManyToOne
     @JoinColumn(name = "recipe_id")
-    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"ingredients", "hibernateLazyInitializer", "handler"})
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({ "hibernateLazyInitializer", "handler"})
     private Recipe recipe;
     
     @Column(name = "day_of_week")

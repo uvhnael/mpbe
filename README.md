@@ -1,4 +1,121 @@
-# AI-Based Meal Planner App - Backend (MPBE)
+# AI Meal Planner Backend (Spring Boot)
+
+Backend REST API for the AI-based meal planner that powers the mobile/web frontend. This README is focused on what a frontend developer needs: how to run the API locally, auth headers, response envelopes, and every available endpoint with request/response shapes.
+
+## Tech Stack
+- Spring Boot 3.2.5, Java 17, Maven
+- MySQL (dev/prod), H2 (tests)
+- JWT HS512, Spring Security
+- springdoc OpenAPI / Swagger UI
+- Gemini API integration for AI meal planning and nutrition suggestions
+
+## Quick Start (Dev)
+1) Prerequisites: Java 17+, Maven, MySQL running with a database named `meal_planner` and credentials matching [src/main/resources/application-dev.properties](src/main/resources/application-dev.properties) (default `root` / `1`).
+2) Run (dev profile is the default):
+```bash
+./mvnw spring-boot:run
+# or explicitly
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+```
+3) Base URL (dev): `http://localhost:6012/api/v1`
+4) Swagger UI (dev): `http://localhost:6012/api/v1/swagger-ui.html`
+5) open API: `http://localhost:6012/api/v1/api-docs`
+
+### Other Profiles
+- prod: uses [src/main/resources/application-prod.properties](src/main/resources/application-prod.properties) with env vars `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `GEMINI_API_KEY`, `ALLOWED_ORIGINS`. Context path is not set in prod (no `/api/v1`).
+
+## Security & CORS
+- JWT HS512. Send header: `Authorization: Bearer <access-token>`.
+- Public endpoints: `/auth/**`, `/health/**`, Swagger resources.
+- CORS: permissive in dev (see [src/main/java/org/uvhnael/mpbe/config/CorsConfig.java](src/main/java/org/uvhnael/mpbe/config/CorsConfig.java)); configure origins via `cors.allowed-origins` property.
+
+## Response Envelopes
+- `ApiResponse`: `{ "success": boolean, "message": string, "data": any }`
+- `PagedResponse<T>`: `{ content, page, size, totalElements, totalPages, last, first }`
+
+## Data Models (JSON fields)
+- User: `{ id, email, fullName, createdAt, updatedAt }`
+- UserProfile: `{ id, userId, age, gender, height, weight, goal, activityLevel, dietaryPreference, allergies, budgetPerMeal }`
+- Recipe: `{ id, name, description, cuisineType, mealType, prepTime, cookTime, servings, difficulty, imageUrl, instructions, ingredients[] }`
+- Ingredient: `{ id, name, quantity, unit, calories, protein, carbs, fat }`
+- MealPlan: `{ id, user, name, startDate, endDate, totalCalories, status, mealPlanItems[] }`
+- MealPlanItem: `{ id, recipe, dayOfWeek, mealType }`
+- ShoppingList: `{ id, mealPlan, user, items[], createdAt }`
+- ShoppingListItem: `{ id, ingredientName, quantity, unit, isChecked, category }`
+- AuthResponse: `{ token, refreshToken, type, id, email, fullName }`
+
+## Endpoints (prefix with `/api/v1` in dev)
+
+### Health
+- `GET /health` → uptime info
+- `GET /health/ready`
+- `GET /health/live`
+
+### Auth (`/auth`)
+- `POST /auth/register` — body `{ email, password, fullName }` → `AuthResponse`
+- `POST /auth/login` — body `{ email, password }` → `AuthResponse`
+- `POST /auth/refresh` — body `{ "refreshToken": "..." }` → `ApiResponse.data = <newAccessToken>`
+
+### Users (`/users`)
+- `GET /users/profile/{userId}` → `ApiResponse.data = UserProfile`
+- `PUT /users/profile/{userId}` — body `UserProfileRequest` (all fields optional except validation mins) → updated profile
+- `PUT /users/preferences/{userId}` — body `{ dietaryPreference?, allergies?, budgetPerMeal? }`
+
+`UserProfileRequest` fields: `age (10-120)`, `gender`, `height (>=50)`, `weight (>=20)`, `goal`, `activityLevel`, `dietaryPreference`, `allergies`, `budgetPerMeal (>=0)`.
+
+### Meal Plans (`/meal-plans`)
+- `POST /meal-plans/generate?userId=...` — body `{ days: 1-30, startDate? }`; uses Gemini to create recipes + items, saves to DB, returns `MealPlan`.
+- `GET /meal-plans?userId=...&page=0&size=10&sortBy=createdAt&sortDirection=desc` → `ApiResponse.data` with pagination metadata + `content` list.
+- `GET /meal-plans/all?userId=...` — all meal plans (no pagination).
+- `GET /meal-plans/{id}` — single `MealPlan`.
+- `PUT /meal-plans/{id}` — body `MealPlan` (full update).
+- `PATCH /meal-plans/{id}/name` — body `{ "name": "New name" }`.
+- `DELETE /meal-plans/{id}` — delete plan.
+- `POST /meal-plans/{id}/regenerate-day?dayOfWeek=<1-7>` — regenerates one day via Gemini and replaces that day's items.
+
+Meal plan items returned include `recipe` objects with ingredients; use `dayOfWeek` (int) + `mealType` to position in UI.
+
+### Recipes (`/recipes`)
+- `GET /recipes?page=0&size=10` → `PagedResponse<Recipe>` inside `ApiResponse.data`.
+- `GET /recipes/{id}` → `Recipe`.
+- `POST /recipes` — body `Recipe` with optional `ingredients[]` → created recipe.
+- `PUT /recipes/{id}` — body `Recipe` → updated.
+- `DELETE /recipes/{id}` — delete.
+- `GET /recipes/search?name=chicken&page=0&size=10` → `Page<Recipe>` inside `ApiResponse.data`.
+- Favorites: `POST /recipes/{id}/favorite?userId=...`, `DELETE /recipes/{id}/favorite?userId=...`, `GET /recipes/favorites?userId=...`.
+- `GET /recipes/{id}/nutrition` — computed nutrition map for that recipe (sum of ingredients).
+
+### Shopping Lists (`/shopping-lists`)
+- `POST /shopping-lists?mealPlanId=...&userId=...` — create linked to a meal plan.
+- `GET /shopping-lists/{id}` — get one.
+- `GET /shopping-lists?userId=...` — all lists for user.
+- Items: `POST /shopping-lists/{id}/items` (body `ShoppingListItem`), `GET /shopping-lists/{id}/items`, `PUT /shopping-lists/{id}/items/{itemId}`, `DELETE /shopping-lists/{id}/items/{itemId}`, `PATCH /shopping-lists/{id}/items/{itemId}/toggle` (checked flag).
+- `POST /shopping-lists/{id}/generate-from-meal-plan` — build items by aggregating ingredients of recipes in the linked meal plan.
+
+### AI (`/ai`)
+- `POST /ai/suggest-recipes?userId=...` — returns Gemini text/json suggestions based on the user's profile.
+- `POST /ai/analyze-nutrition?recipeName=...` — Gemini nutrition analysis text/json.
+- `POST /ai/substitute-ingredient?ingredient=...&reason=...` — Gemini ingredient substitutes.
+
+## Validation & Errors
+- Validation annotations on requests; errors are returned as `ApiResponse` with `success=false` and message.
+- Common 400 reasons: missing profile, missing meal plan, empty name, missing refresh token.
+
+## Database Schema (summary)
+- Tables: users, user_profiles, recipes, ingredients, meal_plans, meal_plan_items, shopping_lists, shopping_list_items, user_recipe_favorites, refresh_tokens.
+- Referential integrity with cascading deletes on most child tables.
+
+## Running Tests
+```bash
+./mvnw test
+```
+
+## Notes for Frontend Integration
+- Always prepend `/api/v1` in dev; omit in prod unless configured.
+- Persist and resend `Authorization` for all non-public routes.
+- `AuthResponse.refreshToken` must be stored to call `/auth/refresh`; refresh returns a new access token only.
+- Meal plan generation and regeneration call Gemini; expect slower latency.
+- Swagger/OpenAPI docs in dev are the quickest way to try payloads.# AI-Based Meal Planner App - Backend (MPBE)
 
 ## Giới thiệu
 

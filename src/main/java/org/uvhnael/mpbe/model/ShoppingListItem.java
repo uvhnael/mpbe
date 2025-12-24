@@ -1,9 +1,11 @@
 package org.uvhnael.mpbe.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 
@@ -12,7 +14,8 @@ import java.math.BigDecimal;
        indexes = {
            @Index(name = "idx_shopping_list_id", columnList = "shopping_list_id")
        })
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class ShoppingListItem {
@@ -23,6 +26,7 @@ public class ShoppingListItem {
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "shopping_list_id", nullable = false)
+    @JsonBackReference
     private ShoppingList shoppingList;
     
     @Column(name = "ingredient_name", nullable = false)

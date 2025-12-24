@@ -1,6 +1,8 @@
 package org.uvhnael.mpbe.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.uvhnael.mpbe.model.MealPlan;
 import org.uvhnael.mpbe.repository.MealPlanRepository;
@@ -18,6 +20,10 @@ public class MealPlanService {
         return mealPlanRepository.findByUserId(userId);
     }
     
+    public Page<MealPlan> getUserMealPlans(Long userId, Pageable pageable) {
+        return mealPlanRepository.findByUserId(userId, pageable);
+    }
+    
     public Optional<MealPlan> getMealPlanById(Long id) {
         return mealPlanRepository.findById(id);
     }
@@ -30,11 +36,22 @@ public class MealPlanService {
         MealPlan existingPlan = mealPlanRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Meal plan not found"));
         
+        if (mealPlan.getName() != null) {
+            existingPlan.setName(mealPlan.getName());
+        }
         existingPlan.setStartDate(mealPlan.getStartDate());
         existingPlan.setEndDate(mealPlan.getEndDate());
         existingPlan.setTotalCalories(mealPlan.getTotalCalories());
         existingPlan.setStatus(mealPlan.getStatus());
         
+        return mealPlanRepository.save(existingPlan);
+    }
+    
+    public MealPlan updateMealPlanName(Long id, String name) {
+        MealPlan existingPlan = mealPlanRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Meal plan not found"));
+        
+        existingPlan.setName(name);
         return mealPlanRepository.save(existingPlan);
     }
     
