@@ -24,32 +24,33 @@ public class HealthController {
         health.put("status", "UP");
         health.put("timestamp", LocalDateTime.now());
         health.put("service", "Meal Planner Backend");
-        
+
         return ResponseEntity.ok(
-            new ApiResponse(true, "Service is healthy", health)
+                new ApiResponse(true, "Service is healthy", health)
         );
     }
-    
+
     @Operation(summary = "Check API readiness", description = "Returns the readiness status of the API")
     @GetMapping("/ready")
     public ResponseEntity<?> readinessCheck() {
         Map<String, Object> readiness = new HashMap<>();
         readiness.put("ready", true);
         readiness.put("timestamp", LocalDateTime.now());
-        
+
         return ResponseEntity.ok(
-            new ApiResponse(true, "Service is ready", readiness)
+                new ApiResponse(true, "Service is ready", readiness)
         );
     }
-    
+
     @Operation(summary = "Ping health check", description = "Simple ping-pong health check")
     @GetMapping("/ping")
     public ResponseEntity<?> ping() {
         Map<String, Object> pingResponse = new HashMap<>();
         pingResponse.put("response", "pong");
         pingResponse.put("timestamp", LocalDateTime.now());
-        
+
         return ResponseEntity.ok(
-            new ApiResponse(true, "Ping successful", pingResponse)
+                new ApiResponse(true, "Ping successful", pingResponse)
         );
     }
+}
