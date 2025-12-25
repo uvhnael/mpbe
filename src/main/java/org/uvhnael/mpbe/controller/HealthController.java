@@ -42,15 +42,14 @@ public class HealthController {
         );
     }
     
-    @Operation(summary = "Check API liveness", description = "Returns the liveness status of the API")
-    @GetMapping("/live")
-    public ResponseEntity<?> livenessCheck() {
-        Map<String, Object> liveness = new HashMap<>();
-        liveness.put("alive", true);
-        liveness.put("timestamp", LocalDateTime.now());
+    @Operation(summary = "Ping health check", description = "Simple ping-pong health check")
+    @GetMapping("/ping")
+    public ResponseEntity<?> ping() {
+        Map<String, Object> pingResponse = new HashMap<>();
+        pingResponse.put("response", "pong");
+        pingResponse.put("timestamp", LocalDateTime.now());
         
         return ResponseEntity.ok(
-            new ApiResponse(true, "Service is alive", liveness)
+            new ApiResponse(true, "Ping successful", pingResponse)
         );
     }
-}
