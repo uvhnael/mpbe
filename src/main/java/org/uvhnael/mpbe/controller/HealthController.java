@@ -47,7 +47,7 @@ public class HealthController {
     public ResponseEntity<?> ping() {
         Map<String, Object> pingResponse = new HashMap<>();
         pingResponse.put("response", "pong");
-        pingResponse.put("timestamp", LocalDateTime.now());
+        pingResponse.put("timestamp", LocalDateTime.now().toString());
 
         return ResponseEntity.ok(
                 new ApiResponse(true, "Ping successful", pingResponse)
