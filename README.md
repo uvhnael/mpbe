@@ -16,7 +16,7 @@ Backend API cho ứng dụng lập kế hoạch bữa ăn thông minh sử dụn
 - **Logging**: Spring AOP + AspectJ
 - **Testing**: JUnit 5, Mockito, H2 In-Memory Database
 
-## Tính năng chín
+## Tính năng chính
 
 ### 1. Authentication & Security ✅ 
 
