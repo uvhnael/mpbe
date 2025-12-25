@@ -37,4 +37,4 @@ build/
 *.tmp
 .DS_Store
 meal_planer.jar
-src/main/resources/
+!**/src/main/resources/

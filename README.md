@@ -18,7 +18,7 @@ Backend API cho ứng dụng lập kế hoạch bữa ăn thông minh sử dụn
 
 ## Tính năng chính
 
-### 1. Authentication & Security ✅
+### 1. Authentication & Security ✅ 
 
 - Đăng ký, đăng nhập với JWT (RS512 Algorithm)
 - Refresh Token mechanism với expiry tracking
