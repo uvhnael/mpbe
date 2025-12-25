@@ -31,3 +31,10 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Meal Planner Specific ###
+*.log
+*.tmp
+.DS_Store
+meal_planer.jar
+src/main/resources/
